@@ -1,0 +1,12 @@
+{
+  // disable remote schema fetches
+  "json.schemaDownload.enable": false,
+
+  // optionally point package.json to a local schema
+  "json.schemas": [
+    {
+      "fileMatch": ["package.json"],
+      "url": "https://json.schemastore.org/package"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "openapi": "3.0.1",
+  "info": { "title": "Web Search Plugin", "version": "1.0" },
+  "paths": {
+    "/api/search": {
+      "get": {
+        "parameters":[
+          { "name":"q","in":"query","required":true,"schema":{"type":"string"} }
+        ],
+        "responses": {
+          "200": {
+            "description":"Search results",
+            "content": {
+              "application/json": {
+                "schema":{
+                  "type":"object",
+                  "properties":{
+                    "results":{
+                      "type":"array",
+                      "items":{
+                        "type":"object",
+                        "properties":{
+                          "name":    { "type":"string" },
+                          "snippet": { "type":"string" },
+                          "url":     { "type":"string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
