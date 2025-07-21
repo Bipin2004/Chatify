@@ -1,30 +1,55 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Mic, Square, Sparkles, Bot, User } from 'lucide-react';
+import { Send, Paperclip, Mic, Square, Sparkles, Bot, X } from 'lucide-react';
 import Message from './Message';
 import TypingIndicator from './TypingIndicator';
 import WelcomeMessage from './WelcomeMessage';
 import { useSocket } from '../../hooks/useSocket';
 import { useAutoResize } from '../../hooks/useAutoResize';
-import Loader from '../Common/Loader';
 import { useAuth } from '../../hooks/useAuth';
+
+// New component for the attachment preview
+const AttachmentPreview = ({ file, onRemove }) => {
+  return (
+    <div className="relative inline-block bg-slate-700/50 p-2 rounded-lg mb-2">
+      <img src={URL.createObjectURL(file)} alt="Preview" className="max-h-24 rounded" />
+      <button 
+        onClick={onRemove}
+        className="absolute -top-2 -right-2 bg-slate-600 text-white rounded-full p-1 hover:bg-red-500 transition-colors"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+};
+
 
 export default function ChatBox() {
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [attachedFile, setAttachedFile] = useState(null); // State for the file
   const { user } = useAuth();
   const chatId = 'global-chat';
   const { messages, sendMessage, typing } = useSocket(chatId);
+  
   const endRef = useRef();
   const textareaRef = useAutoResize(input);
+  const fileInputRef = useRef(null); // Ref for the hidden file input
 
   const send = (e) => {
     e.preventDefault();
-    if (loading || !input.trim()) return;
+    if (typing || (!input.trim() && !attachedFile)) return;
     
-    setLoading(true);
+    // We'll add the file sending logic in the next step.
+    // For now, it just sends the text.
     sendMessage({ chatId, senderId: user._id, message: input });
+    
     setInput('');
-    setTimeout(() => setLoading(false), 1000);
+    setAttachedFile(null); // Clear the file after sending
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setAttachedFile(e.target.files[0]);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -42,20 +67,10 @@ export default function ChatBox() {
   };
 
   useEffect(() => {
-    // Improved scroll behavior for a smoother experience
     if (endRef.current) {
-      const scrollContainer = endRef.current.parentElement;
-      const isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 200;
-      
-      // If user is already near bottom or it's a new message, scroll to bottom
-      if (isNearBottom || messages[messages.length - 1]?.senderId === user?._id) {
-        endRef.current.scrollIntoView({ 
-          behavior: messages.length > 1 ? 'smooth' : 'auto',
-          block: 'end'
-        });
-      }
+      endRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, typing, user?._id]);
+  }, [messages]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -64,8 +79,8 @@ export default function ChatBox() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/50 backdrop-blur-sm relative">
-      {/* Header */}
+    <div className="flex flex-col flex-1 bg-slate-900/50 backdrop-blur-sm overflow-hidden">
+      {/* Header (No changes) */}
       <div className="hidden lg:flex items-center justify-between p-6 border-b border-slate-700/50 flex-shrink-0">
         <div className="flex items-center space-x-3">
           <div className="relative">
@@ -79,21 +94,11 @@ export default function ChatBox() {
             <p className="text-sm text-slate-400">Powered by Gemini • Web Search Enabled</p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm text-slate-400">Online</span>
-          </div>
-          <div className="flex items-center space-x-1 px-3 py-1 bg-slate-800/50 rounded-full">
-            <Bot size={14} className="text-purple-400" />
-            <span className="text-xs text-slate-400">{messages.filter(m => m.isAI).length}</span>
-          </div>
-        </div>
       </div>
 
-      {/* Messages Area - with bottom padding to account for fixed input */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-48 lg:pb-44" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4B5563 transparent' }}>
-        {messages.length === 0 ? (
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 min-h-0" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4B5563 transparent' }}>
+        {messages.length === 0 && !typing ? (
           <WelcomeMessage onSuggestionClick={handleSuggestionClick} />
         ) : (
           <>
@@ -113,12 +118,16 @@ export default function ChatBox() {
             {typing && <TypingIndicator />}
           </>
         )}
-        <div ref={endRef} className="h-1" />
+        <div ref={endRef} />
       </div>
 
-      {/* Fixed Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50 bg-slate-900/95 backdrop-blur-lg shadow-lg z-10">
+      {/* Input Area */}
+      <div className="p-4 border-t border-slate-700/50 bg-slate-900/95 backdrop-blur-lg shadow-lg z-10 flex-shrink-0">
         <div className="max-w-4xl mx-auto">
+          {/* Attachment Preview */}
+          {attachedFile && (
+            <AttachmentPreview file={attachedFile} onRemove={() => setAttachedFile(null)} />
+          )}
           <form onSubmit={send} className="relative">
             <div className="flex items-end space-x-3">
               <div className="flex-1 relative">
@@ -133,34 +142,40 @@ export default function ChatBox() {
                   style={{ minHeight: '56px', maxHeight: '120px' }}
                 />
                 <div className="absolute right-3 top-3 flex items-center space-x-2">
+                  {/* Hidden file input */}
+                  <input 
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept="image/*" // Accept images for now
+                  />
                   <button
                     type="button"
+                    // Trigger the hidden file input
+                    onClick={() => fileInputRef.current.click()}
                     className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors text-slate-400 hover:text-white"
                     title="Attach file"
                   >
                     <Paperclip size={18} />
                   </button>
-                  <button
-                    type="button"
-                    className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors text-slate-400 hover:text-white"
-                    title="Voice message"
-                  >
+                  <button type="button" className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors text-slate-400 hover:text-white" title="Voice message">
                     <Mic size={18} />
                   </button>
                 </div>
               </div>
               <button
                 type="submit"
-                disabled={loading || !input.trim()}
+                disabled={typing || (!input.trim() && !attachedFile)}
                 className={`
                   p-4 rounded-2xl transition-all duration-200 flex items-center justify-center relative overflow-hidden
-                  ${loading || !input.trim() 
+                  ${typing || (!input.trim() && !attachedFile)
                     ? 'bg-slate-700/50 cursor-not-allowed' 
                     : 'btn-modern hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105'
                   }
                 `}
               >
-                {loading ? (
+                {typing ? (
                   <div className="flex items-center space-x-2">
                     <Square size={20} className="text-white" />
                   </div>

@@ -5,11 +5,9 @@ import {
   Settings, 
   User, 
   LogOut,
-  Menu,
   X,
   Search,
-  Clock,
-  Sparkles
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -17,14 +15,9 @@ export default function Sidebar({ isOpen, onToggle }) {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock chat history - in real app, this would come from an API
-  const chatHistory = [
-    { id: 1, title: 'How to learn React?', timestamp: '2 hours ago' },
-    { id: 2, title: 'JavaScript best practices', timestamp: '1 day ago' },
-    { id: 3, title: 'API integration help', timestamp: '2 days ago' },
-    { id: 4, title: 'Database design tips', timestamp: '3 days ago' },
-    { id: 5, title: 'CSS animations guide', timestamp: '1 week ago' },
-  ];
+  // CHANGE: The mock chat history array is now an empty array.
+  // This will be replaced with your actual data from an API later.
+  const chatHistory = [];
 
   const filteredHistory = chatHistory.filter(chat =>
     chat.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -84,25 +77,33 @@ export default function Sidebar({ isOpen, onToggle }) {
           {/* Chat History */}
           <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-2">
-              {filteredHistory.map((chat) => (
-                <div
-                  key={chat.id}
-                  className="p-3 rounded-lg hover:bg-slate-800/50 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-start space-x-3">
-                    <MessageSquare size={16} className="text-slate-400 mt-1 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate group-hover:text-purple-300 transition-colors">
-                        {chat.title}
-                      </p>
-                      <div className="flex items-center space-x-1 mt-1">
-                        <Clock size={12} className="text-slate-500" />
-                        <span className="text-xs text-slate-500">{chat.timestamp}</span>
+              {/* CHANGE: This now checks if filteredHistory has items. */}
+              {/* If not, it displays a placeholder message. */}
+              {filteredHistory.length > 0 ? (
+                filteredHistory.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className="p-3 rounded-lg hover:bg-slate-800/50 cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-start space-x-3">
+                      <MessageSquare size={16} className="text-slate-400 mt-1 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate group-hover:text-purple-300 transition-colors">
+                          {chat.title}
+                        </p>
+                        <div className="flex items-center space-x-1 mt-1">
+                          <Clock size={12} className="text-slate-500" />
+                          <span className="text-xs text-slate-500">{chat.timestamp}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-slate-500 text-sm">No recent chats</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

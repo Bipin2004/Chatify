@@ -19,12 +19,12 @@ export default function ChatPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="flex h-screen">
-        {/* Sidebar */}
+        {/* Sidebar is included here */}
         <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         
         {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:ml-0">
-          {/* Mobile Header */}
+        <div className="flex-1 flex flex-col lg:ml-0 overflow-hidden">
+          {/* Mobile Header with menu button */}
           <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900/50 backdrop-blur-sm border-b border-slate-700/50">
             <button
               onClick={toggleSidebar}
@@ -37,15 +37,13 @@ export default function ChatPage() {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
-            {!ready ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader />
-              </div>
-            ) : (
-              <ChatBox />
-            )}
-          </div>
+          {!ready ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader />
+            </div>
+          ) : (
+            <ChatBox />
+          )}
         </div>
       </div>
     </div>

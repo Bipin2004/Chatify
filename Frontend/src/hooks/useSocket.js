@@ -1,30 +1,24 @@
 // frontend/src/hooks/useSocket.js
 import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { getToken } from './useAuth';
+import { getToken } from './useAuth'; // Assuming useAuth provides getToken
 
 export const useSocket = (chatId) => {
   const [messages, setMessages] = useState([]);
-  const [typing, setTyping]     = useState(false);
-  const socketRef               = useRef(null);
+  const [typing, setTyping] = useState(false);
+  const socketRef = useRef(null);
 
   // Fetch existing messages when chatId changes
   useEffect(() => {
     if (!chatId) return;
-
     const fetchMessages = async () => {
       try {
         const token = getToken();
         const response = await fetch(`http://localhost:5000/api/chats/${chatId}/messages`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
-        
         if (response.ok) {
-          const existingMessages = await response.json();
-          setMessages(existingMessages);
+          setMessages(await response.json());
         } else {
           console.warn('Failed to fetch existing messages:', response.statusText);
         }
@@ -32,7 +26,6 @@ export const useSocket = (chatId) => {
         console.error('Error fetching messages:', error);
       }
     };
-
     fetchMessages();
   }, [chatId]);
 
@@ -45,41 +38,48 @@ export const useSocket = (chatId) => {
     });
     socketRef.current = socket;
 
-    socket.on('connect', () => {
-      socket.emit('join_room', chatId);
-    });
+    socket.on('connect', () => socket.emit('join_room', chatId));
+    socket.on('room_joined', () => {});
 
-    socket.on('room_joined', ({ room, socketId }) => {
-      // Room joined successfully
-    });
-
+    // Handles regular user messages
     socket.on('receive_message', msg => {
-      setMessages(prev => {
-        // Check if message already exists to prevent duplicates
-        const exists = prev.some(existingMsg => 
-          existingMsg._id === msg._id || 
-          (existingMsg.message === msg.message && 
-           existingMsg.sender === msg.sender && 
-           Math.abs(new Date(existingMsg.createdAt) - new Date(msg.createdAt)) < 1000)
-        );
-        
-        if (exists) {
-          return prev;
-        }
-        
-        return [...prev, msg];
-      });
-      setTyping(false);
+      setMessages(prev => [...prev, msg]);
+    });
+
+    // Handles AI typing indicator
+    socket.on('ai_typing', ({ isTyping }) => {
+        setTyping(isTyping);
+    });
+
+    // --- STREAMING HANDLERS ---
+    socket.on('stream_start', (initialAiMessage) => {
+      setTyping(false); // Stop showing "Bot is typing..."
+      setMessages(prev => [...prev, { ...initialAiMessage, isStreaming: true }]);
+    });
+
+    socket.on('stream_chunk', ({ _id, chunk }) => {
+      setMessages(prev =>
+        prev.map(msg =>
+          msg._id === _id ? { ...msg, message: msg.message + chunk } : msg
+        )
+      );
+    });
+
+    socket.on('stream_end', ({ tempId, finalMessage }) => {
+      setMessages(prev =>
+        prev.map(msg =>
+          msg._id === tempId ? { ...finalMessage, isStreaming: false } : msg
+        )
+      );
     });
 
     socket.on('chat_error', e => {
       console.warn('⚠️ chat_error:', e.message);
       alert(e.message);
+      setTyping(false);
     });
 
-    socket.on('disconnect', () => {
-      // Socket disconnected
-    });
+    socket.on('disconnect', () => {});
 
     return () => {
       socket.disconnect();
@@ -93,9 +93,8 @@ export const useSocket = (chatId) => {
       return;
     }
     socketRef.current.emit('send_message', msg);
+    setTyping(true); // Optimistically show typing indicator
   };
 
-  const indicateTyping = () => setTyping(true);
-
-  return { messages, sendMessage, typing, indicateTyping };
+  return { messages, sendMessage, typing };
 };
