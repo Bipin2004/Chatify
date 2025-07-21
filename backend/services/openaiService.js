@@ -1,4 +1,4 @@
-// backend/services/geminiService.js
+// backend/services/openaiService.js
 const { OpenAI } = require('openai');
 
 const openai = new OpenAI({
@@ -7,9 +7,8 @@ const openai = new OpenAI({
 });
 
 /**
- * askGemini()
- * Send userMessage to Google Gemini via
- * the Generative Language “/openai” endpoint.
+ * askGemini() - Non-streaming
+ * Send userMessage to Google Gemini and wait for the full response.
  */
 async function askGemini(userMessage) {
   const response = await openai.chat.completions.create({
@@ -19,4 +18,18 @@ async function askGemini(userMessage) {
   return response.choices?.[0]?.message?.content ?? '';
 }
 
-module.exports = { askGemini };
+/**
+ * askGeminiStream() - Streaming
+ * Creates a stream from the Gemini API.
+ * @param {Array<Object>} messages - The full conversation history for context.
+ * @returns {Promise<Stream>} - A stream object from the API.
+ */
+async function askGeminiStream(messages) {
+  return openai.chat.completions.create({
+    model: process.env.GEMINI_MODEL,
+    messages: messages, // Use the full history for context
+    stream: true,
+  });
+}
+
+module.exports = { askGemini, askGeminiStream };
