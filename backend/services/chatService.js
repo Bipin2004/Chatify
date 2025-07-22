@@ -12,10 +12,19 @@ exports.fetchMessages = async (chatId) => {
     sender: msg.sender ? msg.sender._id.toString() : null,
     message: msg.message,
     isAI: msg.isAI,
+    imageData: msg.imageData,
+    hasImage: msg.hasImage,
     createdAt: msg.createdAt
   }));
 };
 
-exports.createMessage = async ({ chatId, senderId, message, isAI }) => {
-  return Message.create({ chatId, sender: senderId, message, isAI });
+exports.createMessage = async ({ chatId, senderId, message, isAI, imageData, hasImage }) => {
+  return Message.create({ 
+    chatId, 
+    sender: senderId, 
+    message, 
+    isAI, 
+    imageData: imageData || null, 
+    hasImage: hasImage || false 
+  });
 };

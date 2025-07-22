@@ -21,13 +21,11 @@ const chatService = require('./services/chatService');
 const { askGeminiStream } = require('./services/openaiService');
 
 // --- Global Error Handlers ---
-process.on('uncaughtException', err => console.error('🔴 Uncaught Exception:', err.stack || err));
-process.on('unhandledRejection', reason => console.error('🔴 Unhandled Rejection:', reason.stack || reason));
+process.on('uncaughtException', err => console.error('Uncaught Exception:', err.stack || err));
+process.on('unhandledRejection', reason => console.error(' Unhandled Rejection:', reason.stack || reason));
 
-// --- Connect to MongoDB ---
 connectDB();
 
-// --- Express App Setup ---
 const app = express();
 app.use(helmet());
 app.use(compression());
@@ -52,10 +50,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/search', searchRoutes);
 
-// --- Express Error Handler ---
 app.use(errorHandler);
 
-// --- HTTP & Socket.IO Setup ---
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
@@ -67,6 +63,8 @@ function serializeMsg(doc) {
     sender: doc.sender ? doc.sender.toString() : null,
     message: doc.message,
     isAI: doc.isAI,
+    imageData: doc.imageData,
+    hasImage: doc.hasImage,
     createdAt: doc.createdAt
   };
 }
@@ -82,7 +80,7 @@ io.on('connection', socket => {
     socket.emit('room_joined', { room, socketId: socket.id });
   });
 
-  socket.on('send_message', async ({ chatId, senderId, message }) => {
+  socket.on('send_message', async ({ chatId, senderId, message, imageData }) => {
     try {
       // --- CUSTOM THROTTLE REMOVED ---
       /*
@@ -99,8 +97,16 @@ io.on('connection', socket => {
       lastCall.set(senderId, now);
       */
 
-      // Persist & emit user message
-      const userDoc = await chatService.createMessage({ chatId, senderId, message, isAI: false });
+      // Persist & emit user message with image data
+      const messageData = { 
+        chatId, 
+        senderId, 
+        message, 
+        isAI: false,
+        imageData: imageData || null,
+        hasImage: !!imageData
+      };
+      const userDoc = await chatService.createMessage(messageData);
       io.to(chatId).emit('receive_message', serializeMsg(userDoc));
 
       // Prepare for streaming AI response
@@ -109,7 +115,9 @@ io.on('connection', socket => {
       const history = await chatService.fetchMessages(chatId);
       const formattedHistory = history.map(msg => ({
         role: msg.isAI ? 'assistant' : 'user',
-        content: msg.message
+        content: msg.message,
+        hasImage: msg.hasImage,
+        imageData: msg.imageData
       }));
 
       // Call Gemini Stream
@@ -121,7 +129,7 @@ io.on('connection', socket => {
       socket.emit('stream_start', { _id: tempAiId, isAI: true, message: '' });
 
       for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
+        const content = chunk.text();
         if (content) {
           fullResponse += content;
           socket.emit('stream_chunk', { _id: tempAiId, chunk: content });

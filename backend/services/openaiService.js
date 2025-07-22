@@ -1,35 +1,74 @@
 // backend/services/openaiService.js
-const { OpenAI } = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const openai = new OpenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  baseURL: process.env.GEMINI_BASE_URL
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * askGemini() - Non-streaming
  * Send userMessage to Google Gemini and wait for the full response.
  */
 async function askGemini(userMessage) {
-  const response = await openai.chat.completions.create({
-    model: process.env.GEMINI_MODEL,
-    messages: [{ role: 'user', content: userMessage }]
-  });
-  return response.choices?.[0]?.message?.content ?? '';
+  try {
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL });
+    const result = await model.generateContent(userMessage);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error in askGemini:', error);
+    throw error;
+  }
 }
 
 /**
- * askGeminiStream() - Streaming
+ * askGeminiStream() - Streaming with vision support
  * Creates a stream from the Gemini API.
  * @param {Array<Object>} messages - The full conversation history for context.
  * @returns {Promise<Stream>} - A stream object from the API.
  */
 async function askGeminiStream(messages) {
-  return openai.chat.completions.create({
-    model: process.env.GEMINI_MODEL,
-    messages: messages, // Use the full history for context
-    stream: true,
-  });
+  try {
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL });
+    
+    // Get the latest message (the one we're responding to)
+    const latestMessage = messages[messages.length - 1];
+    
+    // Build conversation history as context
+    const conversationHistory = messages.slice(0, -1).map(msg => 
+      `${msg.role === 'assistant' ? 'Assistant' : 'User'}: ${msg.content}`
+    ).join('\n');
+    
+    let prompt = '';
+    let imageParts = [];
+    
+    // Add conversation context if exists
+    if (conversationHistory) {
+      prompt += `Previous conversation:\n${conversationHistory}\n\nCurrent message:\n`;
+    }
+    
+    // Handle image + text message
+    if (latestMessage.hasImage && latestMessage.imageData) {
+      prompt += latestMessage.content || "What do you see in this image?";
+      
+      // Add image part for vision
+      imageParts.push({
+        inlineData: {
+          data: latestMessage.imageData,
+          mimeType: "image/jpeg"
+        }
+      });
+      
+      const result = await model.generateContentStream([prompt, ...imageParts]);
+      return result.stream;
+    } else {
+      // Text-only message
+      prompt += latestMessage.content;
+      const result = await model.generateContentStream(prompt);
+      return result.stream;
+    }
+  } catch (error) {
+    console.error('Error in askGeminiStream:', error);
+    throw error;
+  }
 }
 
 module.exports = { askGemini, askGeminiStream };

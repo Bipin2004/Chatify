@@ -42,6 +42,16 @@ export default function Message({ msg, self }) {
       <div className="message-bubble flex justify-end mb-6 group">
         <div className="flex items-end space-x-3 max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl">
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-2xl rounded-br-md shadow-lg shadow-blue-500/25">
+            {msg.hasImage && msg.imageData && (
+              <div className="mb-2">
+                <img 
+                  src={`data:image/jpeg;base64,${msg.imageData}`} 
+                  alt="User uploaded image" 
+                  className="max-w-full h-auto rounded-lg"
+                  style={{ maxHeight: '200px' }}
+                />
+              </div>
+            )}
             <div className="text-sm leading-relaxed whitespace-pre-wrap">
               {msg.message}
             </div>

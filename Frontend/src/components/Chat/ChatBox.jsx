@@ -38,12 +38,26 @@ export default function ChatBox() {
     e.preventDefault();
     if (typing || (!input.trim() && !attachedFile)) return;
     
-    // We'll add the file sending logic in the next step.
-    // For now, it just sends the text.
-    sendMessage({ chatId, senderId: user._id, message: input });
-    
-    setInput('');
-    setAttachedFile(null); // Clear the file after sending
+    // Convert image to base64 if attached
+    if (attachedFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Data = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+        sendMessage({ 
+          chatId, 
+          senderId: user._id, 
+          message: input || "What do you see in this image?", 
+          imageData: base64Data 
+        });
+        setInput('');
+        setAttachedFile(null);
+      };
+      reader.readAsDataURL(attachedFile);
+    } else {
+      // Send text-only message
+      sendMessage({ chatId, senderId: user._id, message: input });
+      setInput('');
+    }
   };
 
   const handleFileChange = (e) => {
@@ -76,7 +90,8 @@ export default function ChatBox() {
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, []);
+  // FIX: Added `textareaRef` to the dependency array to resolve the warning.
+  }, [textareaRef]);
 
   return (
     <div className="flex flex-col flex-1 bg-slate-900/50 backdrop-blur-sm overflow-hidden">
