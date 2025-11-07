@@ -27,10 +27,22 @@ async function askGemini(userMessage) {
  */
 async function askGeminiStream(messages) {
   try {
+    // Validate API key and model
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
+    if (!process.env.GEMINI_MODEL) {
+      throw new Error('GEMINI_MODEL is not configured');
+    }
+    
     const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL });
     
     // Get the latest message (the one we're responding to)
     const latestMessage = messages[messages.length - 1];
+    
+    if (!latestMessage) {
+      throw new Error('No message provided');
+    }
     
     // Build conversation history as context
     const conversationHistory = messages.slice(0, -1).map(msg => 
@@ -67,6 +79,8 @@ async function askGeminiStream(messages) {
     }
   } catch (error) {
     console.error('Error in askGeminiStream:', error);
+    console.error('Model being used:', process.env.GEMINI_MODEL);
+    console.error('API Key present:', !!process.env.GEMINI_API_KEY);
     throw error;
   }
 }
