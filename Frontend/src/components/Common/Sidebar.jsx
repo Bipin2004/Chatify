@@ -35,8 +35,8 @@ export default function Sidebar({ isOpen, onToggle }) {
       
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 h-full w-80 bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/50
-        transform transition-transform duration-300 z-50
+        fixed left-0 top-0 h-full min-h-screen w-80 bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/50
+        transform transition-transform duration-300 z-50 flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-0
       `}>

@@ -8,12 +8,21 @@ export const useSocket = (chatId) => {
   const [typing, setTyping] = useState(false);
   const socketRef = useRef(null);
 
+  // Clear messages when chatId changes (user switches)
+  useEffect(() => {
+    setMessages([]);
+    setTyping(false);
+  }, [chatId]);
+
   // Fetch existing messages when chatId changes
   useEffect(() => {
     if (!chatId) return;
+    
     const fetchMessages = async () => {
       try {
         const token = getToken();
+        if (!token) return;
+        
         const response = await fetch(`http://localhost:5000/api/chats/${chatId}/messages`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
@@ -26,20 +35,30 @@ export const useSocket = (chatId) => {
         console.error('Error fetching messages:', error);
       }
     };
+    
     fetchMessages();
   }, [chatId]);
 
   useEffect(() => {
     if (!chatId) return;
 
+    const token = getToken();
+    if (!token) return;
+
     const socket = io('http://localhost:5000', {
-      auth: { token: getToken() },
+      auth: { token },
       transports: ['websocket']
     });
     socketRef.current = socket;
 
-    socket.on('connect', () => socket.emit('join_room', chatId));
-    socket.on('room_joined', () => {});
+    socket.on('connect', () => {
+      console.log('Connected to socket, joining room:', chatId);
+      socket.emit('join_room', chatId);
+    });
+    
+    socket.on('room_joined', ({ room }) => {
+      console.log('Successfully joined room:', room);
+    });
 
     // Handles regular user messages
     socket.on('receive_message', msg => {

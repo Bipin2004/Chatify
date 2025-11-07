@@ -27,7 +27,7 @@ export default function ChatBox() {
   const [input, setInput] = useState('');
   const [attachedFile, setAttachedFile] = useState(null); // State for the file
   const { user } = useAuth();
-  const chatId = 'global-chat';
+  const chatId = user?._id ? `user-${user._id}` : null; // User-specific chat room
   const { messages, sendMessage, typing } = useSocket(chatId);
   
   const endRef = useRef();
@@ -93,8 +93,19 @@ export default function ChatBox() {
   // FIX: Added `textareaRef` to the dependency array to resolve the warning.
   }, [textareaRef]);
 
+  // Don't render if user is not loaded yet
+  if (!user || !chatId) {
+    return (
+      <div className="flex flex-col flex-1 bg-slate-900/50 backdrop-blur-sm overflow-hidden">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-slate-400">Loading chat...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 bg-slate-900/50 backdrop-blur-sm overflow-hidden">
+    <div className="flex flex-col flex-1 bg-slate-900/50 backdrop-blur-sm min-h-0 chat-container">
       {/* Header (No changes) */}
       <div className="hidden lg:flex items-center justify-between p-6 border-b border-slate-700/50 flex-shrink-0">
         <div className="flex items-center space-x-3">
@@ -106,13 +117,19 @@ export default function ChatBox() {
           </div>
           <div>
             <h2 className="text-xl font-semibold text-white">AI Assistant</h2>
-            <p className="text-sm text-slate-400">Powered by Gemini • Web Search Enabled</p>
+            {/* <p className="text-sm text-slate-400">Powered by Gemini • Web Search Enabled</p> */}
           </div>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 min-h-0" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4B5563 transparent' }}>
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-6 min-h-0 messages-area" 
+        style={{ 
+          scrollbarWidth: 'thin', 
+          scrollbarColor: '#4B5563 transparent'
+        }}
+      >
         {messages.length === 0 && !typing ? (
           <WelcomeMessage onSuggestionClick={handleSuggestionClick} />
         ) : (
@@ -200,7 +217,7 @@ export default function ChatBox() {
               </button>
             </div>
           </form>
-          <div className="flex items-center justify-between mt-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-3 space-y-2 sm:space-y-0">
             <p className="text-xs text-slate-500">
               <span className="inline-flex items-center space-x-1">
                 <Sparkles size={12} />

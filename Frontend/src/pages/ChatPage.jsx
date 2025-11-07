@@ -17,15 +17,15 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="flex h-screen">
+    <div className="min-h-screen h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="flex min-h-screen h-full">
         {/* Sidebar is included here */}
         <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         
         {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:ml-0 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:ml-0 min-h-screen">
           {/* Mobile Header with menu button */}
-          <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900/50 backdrop-blur-sm border-b border-slate-700/50">
+          <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900/50 backdrop-blur-sm border-b border-slate-700/50 flex-shrink-0">
             <button
               onClick={toggleSidebar}
               className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors"

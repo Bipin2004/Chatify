@@ -38,7 +38,7 @@ export default function HomePage() {
                   <span className="gradient-text"> AI</span>
                 </h2>
                 <p className="text-xl text-slate-300 leading-relaxed">
-                  Experience the future of conversation with our AI assistant powered by Gemini. 
+                  Experience the future of conversation with our AI assistant. 
                   Get instant answers, research help, and creative assistance.
                 </p>
               </div>
@@ -69,7 +69,7 @@ export default function HomePage() {
               </div>
 
               {/* Stats */}
-              <div className="flex items-center space-x-8 pt-8">
+              {/* <div className="flex items-center space-x-8 pt-8">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-white">1M+</div>
                   <div className="text-slate-400">Conversations</div>
@@ -82,7 +82,7 @@ export default function HomePage() {
                   <div className="text-3xl font-bold text-white">99.9%</div>
                   <div className="text-slate-400">Uptime</div>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Right Side - Auth Forms */}
